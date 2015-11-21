@@ -8,11 +8,12 @@ class TcpConnection():
     Basic implementation of tcp connection using raw_sockets
     """
     # ip header fields
-    def __init__(self, src_ip=None, src_port=None, dst_ip=None, dst_port=None):
+    def __init__(self, src_ip=None, src_port=None, dst_ip=None, dst_port=None, is_server=False):
         self.src_ip = src_ip
         self.src_port = src_port
         self.dst_ip = dst_ip
         self.dst_port = dst_port
+        self.is_server = is_server
 
         self.tcp_seq = 0
         self.tcp_ack_seq = 0
@@ -91,11 +92,23 @@ class TcpConnection():
         #sys.exit()
         # receive syn ack
         print "lets rcv"
-        response, addr = self.socket.recv(15)
+        response, addr = self.socket.recv(1)
         print "rcved"
         self.calcNextSeqNums(response)
         packet = self.ip_header + self.tcp_header(ack=True)
         self.socket.sendto(packet, (self.dst_ip, 0))
+
+    def listen(self):
+        """ bind socket and listen for incoming connection """
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        except socket.error , msg:
+            print 'Socket could not be created. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
+            sys.exit()
+        # bind socket
+        print self.socket.bind((self.src_ip, self.src_port))
+        while True:
+            print self.socket.recvfrom(65535)
 
     def disconnect(self):
         """ close tcp connection """
