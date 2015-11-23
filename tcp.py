@@ -80,45 +80,47 @@ class TcpConnection():
     def connect(self):
         """ install tcp connection """
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+            self.ssender = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+            self.sreciever = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         except socket.error , msg:
             print 'Socket could not be created. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
             sys.exit()
         # bind socket
-        #print self.socket.bind((self.src_ip, self.src_port))
+        self.sreciever.bind((self.src_ip, self.src_port))
         # send syn
-        packet = self.ip_header + self.tcp_header(syn=True)
-        self.socket.sendto(packet, (self.dst_ip, 0 ))
+        packet = self.tcp_header(syn=True)
+        self.ssender.sendto(packet, (self.dst_ip, 0 ))
         #sys.exit()
         # receive syn ack
         print "lets rcv"
-        response, addr = self.socket.recv(1)
+        response, addr = self.sreciever.recv(1)
         print "rcved"
         self.calcNextSeqNums(response)
-        packet = self.ip_header + self.tcp_header(ack=True)
-        self.socket.sendto(packet, (self.dst_ip, 0))
+        packet = self.tcp_header(ack=True)
+        self.ssender.sendto(packet, (self.dst_ip, 0))
 
     def listen(self):
         """ bind socket and listen for incoming connection """
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+            self.ssender = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+            self.sreciever = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         except socket.error , msg:
             print 'Socket could not be created. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
             sys.exit()
         # bind socket
-        print self.socket.bind((self.src_ip, self.src_port))
+        print self.sreciever.bind((self.src_ip, self.src_port))
         while True:
-            print self.socket.recvfrom(65535)
+            print self.sreciever.recvfrom(65535)
 
     def disconnect(self):
         """ close tcp connection """
         # send fin
-        packet = self.ip_header + self.tcp_header(fin=True)
+        packet = self.tcp_header(fin=True)
         self.socket.sendto(packet, (self.dst_ip, 0))
 
     def send(self, data):
         """ send data over established connection """
-        packet = self.ip_header + self.tcp_header(ack=True, psh=True, data=data) + data
+        packet = self.tcp_header(ack=True, psh=True, data=data) + data
         self.socket.sendto(packet, (self.dst_ip, 0))
         # recieve ack
         response, addr = self.socket.recvfrom(65535)
